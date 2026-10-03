@@ -8,7 +8,6 @@ use std::time::Duration;
 /// Frequency and policy for flushing write buffers to persistent disk (fsync).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum SyncStrategy {
-    /// Depend on OS page cache flushing. High write performance.
     #[default]
     Never,
     /// Explicitly call `fsync` after every single write operation (`o_sync` / `sync_on_put`).

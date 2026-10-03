@@ -5,6 +5,7 @@
 
 pub mod config;
 pub mod error;
+pub mod hint_file;
 pub mod indexer;
 pub mod keydir;
 pub mod record;
