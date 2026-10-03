@@ -81,4 +81,39 @@ mod tests {
         let lock3 = LockFile::acquire(dir.path(), false);
         assert!(lock3.is_ok());
     }
+
+    #[test]
+    fn shared_locks_can_coexist_but_exclusive_locks_cannot() {
+        let dir = tempdir().unwrap();
+        let shared1 = LockFile::acquire(dir.path(), true);
+        assert!(shared1.is_ok());
+
+        let shared2 = LockFile::acquire(dir.path(), true);
+        assert!(shared2.is_ok());
+
+        let exclusive = LockFile::acquire(dir.path(), false);
+        assert!(exclusive.is_err());
+    }
+
+    #[test]
+    fn exclusive_lock_blocks_shared_lock() {
+        let dir = tempdir().unwrap();
+        let exclusive = LockFile::acquire(dir.path(), false);
+        assert!(exclusive.is_ok());
+
+        let shared = LockFile::acquire(dir.path(), true);
+        assert!(shared.is_err());
+    }
+
+    #[test]
+    fn dropping_lock_allows_next_lock() {
+        let dir = tempdir().unwrap();
+        let lock = LockFile::acquire(dir.path(), false);
+        assert!(lock.is_ok());
+
+        drop(lock);
+
+        let next_lock = LockFile::acquire(dir.path(), false);
+        assert!(next_lock.is_ok());
+    }
 }

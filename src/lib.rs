@@ -4,6 +4,7 @@
 //! inspired by the original Bitcask design paper (*Justin Sheehy & Marc de Kruijf, Basho Technologies*).
 
 pub mod config;
+pub mod data_file;
 pub mod error;
 pub mod hint_file;
 pub mod indexer;
