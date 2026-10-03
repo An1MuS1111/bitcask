@@ -53,5 +53,4 @@ pub enum BitcaskError {
     Internal(String),
 }
 
-/// Convenience Result type alias for Bitcask operations.
 pub type Result<T> = std::result::Result<T, BitcaskError>;

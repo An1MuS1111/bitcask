@@ -5,4 +5,6 @@
 
 pub mod config;
 pub mod error;
+pub mod indexer;
+pub mod keydir;
 pub mod record;

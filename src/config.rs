@@ -1,4 +1,5 @@
 //! Configuration options for Bitcask storage engine
+
 use crate::error::{BitcaskError, Result};
 use crate::record::MAX_KEY_SIZE;
 use std::path::{Path, PathBuf};

@@ -171,7 +171,7 @@ impl Record {
     }
 
     /// Validate the structural invariants that must hold before a record is
-    /// used by the storage engine. This prevents malformed lengths and unknown
+    /// used by the storage engine which prevents malformed lengths and unknown
     /// record types from turning into oversized allocations or false entries.
     pub fn validate(&self) -> Result<()> {
         if self.header.record_type != u8::from(RecordType::Standard)
