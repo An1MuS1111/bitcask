@@ -6,7 +6,7 @@ use std::fs::{File, OpenOptions};
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::error::Result;
+use crate::error::{BitcaskError, Result};
 use crate::indexer::IndexEntry;
 use crate::record::{HINT_RECORD_SZ, HintEntry, MAX_OFFSET, create_hint_trailer};
 

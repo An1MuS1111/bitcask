@@ -1,3 +1,11 @@
 # Bitcask: A log-structured hash table key-value storage engine
 
-
+<p align="center">
+    <!-- <a href="https://crates.io/crates/bitcask-rs"><img src="https://img.shields.io/crates/v/bitcask-rs?label=version&style=flat-square"></a> -->
+    <!-- &nbsp; -->
+    <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/built_with-Rust-dea584.svg?style=flat-square&logo=rust&logoColor=white"></a>
+    &nbsp;
+    <!-- <a href="https://github.com/An1MuS1111/bitcask/actions"><img src="https://img.shields.io/github/actions/workflow/status/An1MuS1111/bitcask/ci.yml?style=flat-square&branch=master"></a> -->
+    <!-- &nbsp; -->
+    <a href="https://github.com/An1MuS1111/bitcask/blob/master/Cargo.toml"><img src="https://img.shields.io/badge/license-MIT%20%2F%20Apache--2.0-00bfff.svg?style=flat-square"></a>
+</p>

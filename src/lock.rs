@@ -1,0 +1,84 @@
+//! An implementation of directory lock manager using OS file locks.
+//!
+//! Bitcask guarantees process safety by acquiring an exclusive file lock within the database directory.
+//! Which prevents concurrent write instances from corrupting data files.
+
+use fs2::FileExt;
+use std::fs::{File, OpenOptions};
+use std::path::{Path, PathBuf};
+
+use crate::error::{BitcaskError, Result};
+
+/// Lock filename inside Bitcask database directory `bitcask.write.lock`.
+pub const LOCK_FILE_NAME: &str = "bitcask.write.lock";
+
+/// Directory lock handle. Automatically unlocks on drop.
+#[derive(Debug)]
+pub struct LockFile {
+    #[allow(dead_code)]
+    path: PathBuf,
+    file: File,
+}
+
+impl LockFile {
+    /// Acquire exclusive lock on database directory.
+    pub fn acquire<P: AsRef<Path>>(dir: P, read_only: bool) -> Result<Self> {
+        let path = dir.as_ref().join(LOCK_FILE_NAME);
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(&path)?;
+
+        if read_only {
+            // Acquire shared lock for read-only instances
+            file.try_lock_shared().map_err(|_| {
+                BitcaskError::DatabaseLocked(format!(
+                    "Failed to acquire shared lock on directory {}",
+                    dir.as_ref().display()
+                ))
+            })?;
+        } else {
+            // Acquire exclusive lock for read-write instances
+            file.try_lock_exclusive().map_err(|_| {
+                BitcaskError::DatabaseLocked(format!(
+                    "Failed to acquire exclusive lock on directory {}. Another instance may be running.",
+                    dir.as_ref().display()
+                ))
+            })?;
+        }
+
+        Ok(Self { path, file })
+    }
+}
+
+impl Drop for LockFile {
+    fn drop(&mut self) {
+        let _ = self.file.unlock();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_lock_file_exclusivity() {
+        let dir = tempdir().unwrap();
+        let lock1 = LockFile::acquire(dir.path(), false);
+        assert!(lock1.is_ok());
+
+        // Second exclusive lock attempt should fail
+        let lock2 = LockFile::acquire(dir.path(), false);
+        assert!(lock2.is_err());
+
+        // Drop first lock
+        drop(lock1);
+
+        // Third attempt after drop should succeed
+        let lock3 = LockFile::acquire(dir.path(), false);
+        assert!(lock3.is_ok());
+    }
+}
