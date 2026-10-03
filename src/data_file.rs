@@ -2,15 +2,18 @@
 
 use parking_lot::RwLock;
 use std::fs::{File, OpenOptions};
-use std::io::{Seek, SeekFrom, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 
+#[cfg(unix)]
+use std::os::unix::fs::FileExt;
+
 use crate::error::{BitcaskError, Result};
 use crate::hint_file::HintFileWriter;
 use crate::indexer::IndexEntry;
-use crate::record::Record;
+use crate::record::{HEADER_SIZE, Record, decode_header};
 
 /// Data file name extension matching Erlang Bitcask (`.bitcask.data`).
 pub const DATA_FILE_SUFFIX: &str = ".bitcask.data";
@@ -128,5 +131,60 @@ impl DataFile {
         }
 
         Ok(index_entry)
+    }
+
+    /// Reads a full record at `offset`. And verifies CRC.
+    pub fn read_record(&self, offset: u64, total_sz: u32) -> Result<Record> {
+        if total_sz < HEADER_SIZE as u32 {
+            return Err(BitcaskError::CorruptedRecord {
+                offset,
+                reason: "record is smaller than its header".into(),
+            });
+        }
+        let mut buf = vec![0u8; total_sz as usize];
+
+        #[cfg(unix)]
+        {
+            let lock = self.file.read();
+            lock.read_exact_at(&mut buf, offset)?;
+        }
+
+        #[cfg(not(unix))]
+        {
+            let mut lock = self.file.write();
+            lock.seek(SeekFrom::Start(offset))?;
+            lock.read_exact(&mut buf)?;
+        }
+
+        let mut cursor = &buf[..];
+        let Ok(Some(header)) = decode_header(&mut cursor) else {
+            return Err(BitcaskError::CorruptedRecord {
+                offset,
+                reason: "Incomplete record header".into(),
+            });
+        };
+
+        let mut key = vec![0u8; header.key_sz as usize];
+        let mut value = vec![0u8; header.value_sz as usize];
+
+        cursor.read_exact(&mut key)?;
+        cursor.read_exact(&mut value)?;
+
+        let record = Record { header, key, value };
+        record.validate().map_err(|error| match error {
+            BitcaskError::CrcMismatch {
+                expected, actual, ..
+            } => BitcaskError::CrcMismatch {
+                offset,
+                expected,
+                actual,
+            },
+            BitcaskError::CorruptedRecord { reason, .. } => {
+                BitcaskError::CorruptedRecord { offset, reason }
+            }
+            other => other,
+        })?;
+
+        Ok(record)
     }
 }
